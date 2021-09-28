@@ -44,7 +44,7 @@ get_file "https://codeclimate.com/downloads/test-reporter/test-reporter-latest-l
     "5e72323531a2d1842d81ec784a2b4ed789cc9c8ecf0213d4f701855fa13d1bfb"
 chmod 755 /usr/local/bin/cc-test-reporter
 
-wget -O /usr/local/bin/grabpl "https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v0.5.38/grabpl"
+wget -O /usr/local/bin/grabpl "https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.4.0/grabpl"
 chmod +x /usr/local/bin/grabpl
 
 # Install Mage
