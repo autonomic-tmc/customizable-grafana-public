@@ -9,11 +9,15 @@ aliases:
       only: /^v[0-9]+(\.[0-9]+){2}(-.+|[^-.]*)$/
   - &filter-only-main
     branches:
-      only: main
+      only: 
+        - main
+        - rc
+        - fix-circleci
   - &filter-main-or-release
     branches:
       only:
         - main
+        - fix-circleci
         - chore/test-release-pipeline
     tags:
       only: /^v[0-9]+(\.[0-9]+){2}(-.+|[^-.]*)$/
