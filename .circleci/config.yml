@@ -639,6 +639,8 @@ jobs:
       - run:
           name: frontend tests
           command: |
+            yarn wait-on http://$HOST:$PORT
+            yarn -s test:accessibility --json > pa11y-ci-results.json
             if [[ -n $CIRCLE_TAG ]]; then
               # A release build
               ./scripts/circle-test-frontend.sh --edition << parameters.edition >> $CIRCLE_TAG
