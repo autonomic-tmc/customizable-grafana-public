@@ -41,9 +41,6 @@ executors:
   grafana-publish:
     docker:
       - image: grafana/grafana-ci-deploy:1.3.1
-  windows-installer:
-    docker:
-      - image: grafana/wix-toolset-ci:v3
 
 commands:
   install-grabpl:
@@ -282,77 +279,6 @@ jobs:
           command: ./scripts/ci-job-succeeded.sh
           when: on_success
 
-  build-oss-windows-installer:
-    executor: windows-installer
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - checkout
-      - run:
-          name: CI job started
-          command: ./scripts/ci-job-started.sh
-      - run:
-          name: Copy artifacts from workspace
-          command: cp -r /tmp/workspace/oss/dist .
-      - run:
-          name: Build Windows installer
-          command: ./scripts/build/ci-msi-build/ci-msi-build-oss.sh
-      - run:
-          name: Move artifacts
-          command: mkdir oss && mv dist oss/
-      - persist_to_workspace:
-          root: .
-          paths:
-            - oss/dist/grafana-*.msi
-            - oss/dist/grafana-*.msi.sha256
-      - run:
-          name: CI job failed
-          command: ./scripts/ci-job-failed.sh
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: ./scripts/ci-job-succeeded.sh
-          when: on_success
-
-  build-enterprise-windows-installer:
-    executor: windows-installer
-    steps:
-      - run:
-          name: Exit if forked PR
-          command: |
-            if [[ -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
-      - attach_workspace:
-          at: /tmp/workspace
-      - checkout
-      - run:
-          name: CI job started
-          command: "./scripts/ci-job-started.sh"
-      - run:
-          name: Copy artifacts from workspace
-          command: cp -r /tmp/workspace/enterprise/dist enterprise-dist
-      - run:
-          name: Build Windows installer
-          command: ./scripts/build/ci-msi-build/ci-msi-build-ee.sh
-      - run:
-          name: Move artifacts
-          command: mkdir enterprise && mv enterprise-dist enterprise/dist
-      - persist_to_workspace:
-          root: .
-          paths:
-            - enterprise/dist/grafana-*.msi
-            - enterprise/dist/grafana-*.msi.sha256
-      - run:
-          name: CI job failed
-          command: "./scripts/ci-job-failed.sh"
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: "./scripts/ci-job-succeeded.sh"
-          when: on_success
-
   release-next-packages:
     executor: grafana-build
     steps:
@@ -420,11 +346,11 @@ jobs:
             elif [[ -n "$CIRCLE_PR_NUMBER" ]]; then
               # A forked PR build, don't sign as it requires an API secret
               /tmp/grabpl package --github-token "${GITHUB_GRAFANABOT_TOKEN}" --jobs 2 --edition oss --build-id $CIRCLE_WORKFLOW_ID --variants \
-                linux-x64,linux-x64-musl,osx64,win64
+                linux-x64,linux-x64-musl,osx64
             else
               # A non-forked PR build
               /tmp/grabpl package --github-token "${GITHUB_GRAFANABOT_TOKEN}" --jobs 2 --edition oss --sign --build-id $CIRCLE_WORKFLOW_ID --variants \
-                linux-x64,linux-x64-musl,osx64,win64
+                linux-x64,linux-x64-musl,osx64
             fi
       - run:
           name: Move artifacts
@@ -435,68 +361,6 @@ jobs:
           root: .
           paths:
             - oss/dist/*
-      - run:
-          name: CI job failed
-          command: ./scripts/ci-job-failed.sh
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: ./scripts/ci-job-succeeded.sh
-          when: on_success
-
-  package-enterprise:
-    executor: grafana-build
-    steps:
-      - run:
-          name: Exit if forked PR
-          command: |
-            if [[ -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
-      - attach_workspace:
-          at: /tmp/workspace
-      - checkout
-      - run:
-          name: CI job started
-          command: ./scripts/ci-job-started.sh
-      - install-grabpl
-      - run:
-          name: Copy artifacts from workspace
-          command: cp -r /tmp/workspace/enterprise/* .
-      - run:
-          name: Package Grafana
-          command: |
-            # Necessary for signing bundled plugins
-            export GRAFANA_API_KEY=$GRAFANA_COM_API_KEY
-
-            if [[ -n $CIRCLE_TAG ]]; then
-              # A release build
-              /tmp/grabpl package --github-token "${GITHUB_GRAFANABOT_TOKEN}" --jobs 2 --edition enterprise --sign $CIRCLE_TAG
-            elif [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              /tmp/grabpl package --github-token "${GITHUB_GRAFANABOT_TOKEN}" --jobs 2 --edition enterprise --sign v7.0.0-test
-            elif [[ $CIRCLE_BRANCH == "main" ]]; then
-              # A main build
-              /tmp/grabpl package --github-token "${GITHUB_GRAFANABOT_TOKEN}" --jobs 2 --edition enterprise --sign --build-id $CIRCLE_WORKFLOW_ID
-            elif [[ -n "$CIRCLE_PR_NUMBER" ]]; then
-              # A forked PR build, don't sign as it requires an API secret
-              /tmp/grabpl package --github-token "${GITHUB_GRAFANABOT_TOKEN}" --jobs 2 --edition enterprise --build-id $CIRCLE_WORKFLOW_ID --variants \
-                linux-x64,linux-x64-musl,osx64,win64
-            else
-              # A PR build
-              /tmp/grabpl package --github-token "${GITHUB_GRAFANABOT_TOKEN}" --jobs 2 --edition enterprise --sign --build-id $CIRCLE_WORKFLOW_ID --variants \
-                linux-x64,linux-x64-musl,osx64,win64
-            fi
-      - run:
-          name: Move artifacts
-          command: |
-            mkdir -p enterprise
-            mv dist enterprise/
-      - persist_to_workspace:
-          root: .
-          paths:
-            - enterprise/dist/*
       - run:
           name: CI job failed
           command: ./scripts/ci-job-failed.sh
@@ -538,47 +402,6 @@ jobs:
                 grafana-downloads-test --rpm-repo-bucket grafana-testing-repo --simulate-release
             else
               /tmp/grabpl publish-packages --edition << parameters.edition >>
-            fi
-      - run:
-          name: CI job failed
-          command: ./scripts/ci-job-failed.sh
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: ./scripts/ci-job-succeeded.sh
-          when: on_success
-
-  publish-storybook:
-    description: "Publish Storybook"
-    executor: grafana-publish
-    steps:
-      - checkout
-      - run:
-          name: CI job started
-          command: ./scripts/ci-job-started.sh
-      - run:
-          name: Publish Storybook
-          command: |
-            yarn install --frozen-lockfile --no-progress
-            yarn storybook:build
-
-            if [[ -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
-
-            if [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              echo Testing release
-            elif [[ $CIRCLE_BRANCH == "main" ]]; then
-              echo $GCP_GRAFANA_UPLOAD_KEY > /tmp/gcpkey.json
-              gcloud auth activate-service-account --key-file=/tmp/gcpkey.json
-              gsutil -m rsync -d -r ./packages/grafana-ui/dist/storybook gs://grafana-storybook/canary
-            elif [[ -n $CIRCLE_TAG ]]; then
-              echo $GCP_GRAFANA_UPLOAD_KEY > /tmp/gcpkey.json
-              gcloud auth activate-service-account --key-file=/tmp/gcpkey.json
-              gsutil -m rsync -d -r ./packages/grafana-ui/dist/storybook gs://grafana-storybook/latest
-              gsutil -m rsync -d -r ./packages/grafana-ui/dist/storybook gs://grafana-storybook/$CIRCLE_TAG
             fi
       - run:
           name: CI job failed
@@ -718,36 +541,6 @@ jobs:
       - store_artifacts:
           path: e2e/tmp/data/log
           destination: logs
-
-  mysql-integration-test:
-    docker:
-      - image: cimg/go:1.14
-      - image: circleci/mysql:5.6-ram
-        environment:
-          MYSQL_ROOT_PASSWORD: rootpass
-          MYSQL_DATABASE: grafana_tests
-          MYSQL_USER: grafana
-          MYSQL_PASSWORD: password
-    steps:
-      - checkout
-      - run:
-          name: ci job started
-          command: "./scripts/ci-job-started.sh"
-      - run: sudo apt update
-      - run: sudo apt install -y default-mysql-client
-      - run: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
-      - run: cat devenv/docker/blocks/mysql_tests/setup.sql | mysql -h 127.0.0.1 -P 3306 -u root -prootpass
-      - run:
-          name: mysql integration tests
-          command: "./scripts/circle-test-mysql.sh"
-      - run:
-          name: ci job failed
-          command: "./scripts/ci-job-failed.sh"
-          when: on_fail
-      - run:
-          name: ci job succeeded
-          command: "./scripts/ci-job-succeeded.sh"
-          when: on_success
 
   postgres-integration-test:
     docker:
@@ -948,19 +741,6 @@ jobs:
           command: "./scripts/ci-job-succeeded.sh"
           when: on_success
 
-  deploy-to-kubernetes:
-    description: "Deploy Grafana main Docker image to Kubernetes"
-    executor: base
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - install-grabpl
-      - run:
-          name: Deploy to Kubernetes
-          command: |
-            cp -r /tmp/workspace/enterprise/dist .
-            /tmp/grabpl deploy-to-k8s
-
   release-packages:
     executor: node
     steps:
@@ -1088,13 +868,6 @@ workflows:
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
-          variant: win64
-          name: build-oss-backend-win64
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          edition: oss
           variant: linux-x64
           name: build-oss-backend-linux-x64
           requires:
@@ -1116,79 +889,6 @@ workflows:
           edition: oss
           requires:
             - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-armv6
-          edition: enterprise
-          variant: armv6
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-armv7
-          edition: enterprise
-          variant: armv7
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-armv7-musl
-          edition: enterprise
-          variant: armv7-musl
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-arm64
-          edition: enterprise
-          variant: arm64
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-arm64-musl
-          edition: enterprise
-          variant: arm64-musl
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-osx64
-          edition: enterprise
-          variant: osx64
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-win64
-          edition: enterprise
-          variant: win64
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-linux-x64
-          edition: enterprise
-          variant: linux-x64
-          requires:
-            - lint-go
-      - build-backend:
-          filters: *filter-main-or-release
-          name: build-enterprise-backend-linux-x64-musl
-          edition: enterprise
-          variant: linux-x64-musl
-          requires:
-            - lint-go
-      - build-frontend:
-          filters: *filter-main-or-release
-          name: build-enterprise-frontend
-          edition: enterprise
-      - build-plugins:
-          filters: *filter-main-or-release
-          name: build-enterprise-plugins
-          edition: enterprise
-          requires:
-            - lint-go
       - build-release-publisher:
           filters: *filter-main-or-release
       - codespell:
@@ -1203,26 +903,10 @@ workflows:
           edition: oss
           requires:
             - lint-go
-      - test-backend:
-          filters: *filter-main-or-release
-          name: test-enterprise-backend
-          edition: enterprise
-          requires:
-            - lint-go
       - test-frontend:
           filters: *filter-main-or-release
           name: test-oss-frontend
           edition: oss
-      - test-frontend:
-          filters: *filter-main-or-release
-          name: test-enterprise-frontend
-          edition: enterprise
-      - mysql-integration-test:
-          filters: *filter-main-or-release
-          requires:
-            - lint-go
-            - test-oss-backend
-            - test-oss-frontend
       - postgres-integration-test:
           filters: *filter-main-or-release
           requires:
@@ -1238,7 +922,6 @@ workflows:
             - build-oss-backend-arm64
             - build-oss-backend-arm64-musl
             - build-oss-backend-osx64
-            - build-oss-backend-win64
             - build-oss-backend-linux-x64
             - build-oss-backend-linux-x64-musl
             - build-oss-frontend
@@ -1247,32 +930,6 @@ workflows:
             - codespell
             - shellcheck
             - build-oss-plugins
-      - package-enterprise:
-          filters: *filter-main-or-release
-          requires:
-            - build-enterprise-backend-armv6
-            - build-enterprise-backend-armv7
-            - build-enterprise-backend-armv7-musl
-            - build-enterprise-backend-arm64
-            - build-enterprise-backend-arm64-musl
-            - build-enterprise-backend-osx64
-            - build-enterprise-backend-win64
-            - build-enterprise-backend-linux-x64
-            - build-enterprise-backend-linux-x64-musl
-            - build-enterprise-frontend
-            - test-enterprise-backend
-            - test-enterprise-frontend
-            - codespell
-            - shellcheck
-            - build-enterprise-plugins
-      - build-oss-windows-installer:
-          filters: *filter-main-or-release
-          requires:
-            - package-oss
-      - build-enterprise-windows-installer:
-          filters: *filter-main-or-release
-          requires:
-            - package-enterprise
       - release-next-packages:
           filters: *filter-only-main
           requires:
@@ -1281,7 +938,6 @@ workflows:
           filters: *filter-only-release
           requires:
             - end-to-end-tests
-            - mysql-integration-test
             - postgres-integration-test
       - publish-packages:
           filters: *filter-main-or-release
@@ -1289,27 +945,9 @@ workflows:
           edition: oss
           requires:
             - package-oss
-            - build-oss-windows-installer
             - end-to-end-tests
-            - mysql-integration-test
             - postgres-integration-test
             - build-release-publisher
-      - publish-packages:
-          filters: *filter-main-or-release
-          name: publish-enterprise-packages
-          edition: enterprise
-          requires:
-            - package-enterprise
-            - build-enterprise-windows-installer
-            - end-to-end-tests
-            - mysql-integration-test
-            - postgres-integration-test
-            - build-release-publisher
-      - publish-storybook:
-          filters: *filter-main-or-release
-          requires:
-            - test-oss-backend
-            - test-oss-frontend
       - build-docker-images:
           filters: *filter-main-or-release
           name: build-oss-docker-images
@@ -1317,10 +955,8 @@ workflows:
           ubuntu: false
           requires:
             - end-to-end-tests
-            - mysql-integration-test
             - postgres-integration-test
             - package-oss
-            - build-oss-windows-installer
       - build-docker-images:
           filters: *filter-main-or-release
           name: build-oss-ubuntu-docker-images
@@ -1328,40 +964,12 @@ workflows:
           ubuntu: true
           requires:
             - end-to-end-tests
-            - mysql-integration-test
             - postgres-integration-test
             - package-oss
-            - build-oss-windows-installer
-      - build-docker-images:
-          filters: *filter-main-or-release
-          name: build-enterprise-docker-images
-          edition: enterprise
-          ubuntu: false
-          requires:
-            - end-to-end-tests
-            - mysql-integration-test
-            - postgres-integration-test
-            - package-enterprise
-            - build-enterprise-windows-installer
-      - build-docker-images:
-          filters: *filter-main-or-release
-          name: build-enterprise-ubuntu-docker-images
-          edition: enterprise
-          ubuntu: true
-          requires:
-            - end-to-end-tests
-            - mysql-integration-test
-            - postgres-integration-test
-            - package-enterprise
-            - build-enterprise-windows-installer
       - end-to-end-tests:
           filters: *filter-main-or-release
           requires:
             - package-oss
-      - deploy-to-kubernetes:
-          filters: *filter-only-main
-          requires:
-            - build-enterprise-docker-images
 
   nightly:
     triggers:
@@ -1372,6 +980,6 @@ workflows:
       - scan-docker-image:
           matrix:
             parameters:
-              image: [grafana/grafana, grafana/grafana-enterprise]
+              image: [grafana/grafana]
               tag: [latest, main, latest-ubuntu, main-ubuntu]
 
