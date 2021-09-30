@@ -601,7 +601,7 @@ jobs:
           name: Lint Go
           command: |
               make gen-go
-              ./tmp/grabpl lint-backend --edition oss       
+              /tmp/grabpl lint-backend --edition oss       
 
   test-frontend:
     parameters:
