@@ -596,18 +596,12 @@ jobs:
       GOGC: 20
     steps:
       - checkout
-      - run:
-          name: Install Go linters
-          command: |
-            VERSION=2.4.0
-            curl -fLO https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v${VERSION}/grabpl
-            chmod +x grabpl
-            mv grabpl /bin
+      - install-grabpl
       - run:
           name: Lint Go
           command: |
               make gen-go
-              ./bin/grabpl lint-backend --edition oss       
+              ./tmp/grabpl lint-backend --edition oss       
 
   test-frontend:
     parameters:
