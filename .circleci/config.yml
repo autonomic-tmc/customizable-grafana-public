@@ -599,13 +599,10 @@ jobs:
       - run:
           name: Install Go linters
           command: |
-            mkdir -p bin
-            curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.4.0/grabpl
-            chmod +x bin/grabpl
-            curl -fLO https://github.com/jwilder/dockerize/releases/download/v$${DOCKERIZE_VERSION}/dockerize-linux-amd64-v$${DOCKERIZE_VERSION}.tar.gz
-            tar -C bin -xzvf dockerize-linux-amd64-v$${DOCKERIZE_VERSION}.tar.gz
-            rm dockerize-linux-amd64-v$${DOCKERIZE_VERSION}.tar.gz
-            yarn install --frozen-lockfile --no-progress
+            VERSION=2.4.0
+            curl -fLO https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v${VERSION}/grabpl
+            chmod +x grabpl
+            mv grabpl /bin
       - run:
           name: Lint Go
           command: |
