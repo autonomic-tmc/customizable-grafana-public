@@ -53,7 +53,6 @@ commands:
             curl -fLO https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v${VERSION}/grabpl
             chmod +x grabpl
             mv grabpl /tmp
-            yarn install --frozen-lockfile --no-progress
             GOLANGCILINT_VERSION=1.37.0
             filename="golangci-lint-${GOLANGCILINT_VERSION}-linux-amd64"
             get_file "https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCILINT_VERSION}/$filename.tar.gz" \
