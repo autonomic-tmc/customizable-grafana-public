@@ -595,23 +595,7 @@ jobs:
           command: 'echo -e "unknwon\nreferer\nerrorstring\neror\niam\nWAN\ntrough" > words_to_ignore.txt'
       - run:
           name: check documentation spelling errors
-          command: "codespell -I ./words_to_ignore.txt docs/"
-
-  lint-go:
-    executor: go
-    environment:
-      # we need CGO because of go-sqlite3
-      CGO_ENABLED: 1
-      # Reduce golangci-lint memory usage (default is 100)
-      GOGC: 20
-    steps:
-      - checkout
-      - install-grabpl
-      - run:
-          name: Lint Go
-          command: |
-              make gen-go
-              /tmp/grabpl lint-backend --edition oss       
+          command: "codespell -I ./words_to_ignore.txt docs/" 
 
   test-frontend:
     parameters:
@@ -815,57 +799,41 @@ workflows:
           edition: oss
           variant: armv6
           name: build-oss-backend-armv6
-          requires:
-            - lint-go
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
           variant: armv7
           name: build-oss-backend-armv7
-          requires:
-            - lint-go
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
           variant: armv7-musl
           name: build-oss-backend-armv7-musl
-          requires:
-            - lint-go
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
           variant: arm64
           name: build-oss-backend-arm64
-          requires:
-            - lint-go
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
           variant: arm64-musl
           name: build-oss-backend-arm64-musl
-          requires:
-            - lint-go
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
           variant: osx64
           name: build-oss-backend-osx64
-          requires:
-            - lint-go
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
           variant: linux-x64
           name: build-oss-backend-linux-x64
-          requires:
-            - lint-go
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
           variant: linux-x64-musl
           name: build-oss-backend-linux-x64-musl
-          requires:
-            - lint-go
       - build-frontend:
           filters: *filter-main-or-release
           name: build-oss-frontend
@@ -874,13 +842,9 @@ workflows:
           filters: *filter-main-or-release
           name: build-oss-plugins
           edition: oss
-          requires:
-            - lint-go
       - build-release-publisher:
           filters: *filter-main-or-release
       - codespell:
-          filters: *filter-main-or-release
-      - lint-go:
           filters: *filter-main-or-release
       - shellcheck:
           filters: *filter-main-or-release
@@ -888,8 +852,6 @@ workflows:
           filters: *filter-main-or-release
           name: test-oss-backend
           edition: oss
-          requires:
-            - lint-go
       - test-frontend:
           filters: *filter-main-or-release
           name: test-oss-frontend
@@ -897,7 +859,6 @@ workflows:
       - postgres-integration-test:
           filters: *filter-main-or-release
           requires:
-            - lint-go
             - test-oss-backend
             - test-oss-frontend
       - package-oss:
