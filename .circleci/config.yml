@@ -102,7 +102,7 @@ jobs:
       - run:
           name: Build Docker images
           command: |
-            make docker-build-full TAG=autonomic-tmc/customizable-grafana:dev
+            make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
       - run:
           name: CI job failed
           command: ./scripts/ci-job-failed.sh
