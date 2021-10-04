@@ -63,13 +63,6 @@ jobs:
         type: string
     executor: grafana-build
     steps:
-      - run:
-          name: Exit if enterprise and forked PR
-          command: |
-            if [[ "oss" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
       - checkout
       - run:
           name: CI job started
@@ -111,13 +104,6 @@ jobs:
     resource_class: large
     executor: grafana-build
     steps:
-      - run:
-          name: Exit if enterprise and forked PR
-          command: |
-            if [[ "oss" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
       - checkout
       - restore_cache:
           keys:
@@ -147,9 +133,6 @@ jobs:
             if [[ -n $CIRCLE_TAG ]]; then
               # A release build
               /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition oss $CIRCLE_TAG
-            elif [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition oss 7.0.0-test
             else
               # A main or PR build
               /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition oss --build-id $CIRCLE_WORKFLOW_ID
@@ -177,13 +160,6 @@ jobs:
         type: string
     executor: grafana-build
     steps:
-      - run:
-          name: Exit if enterprise and forked PR
-          command: |
-            if [[ "oss" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
       - checkout
       - run:
           name: CI job started
@@ -306,48 +282,6 @@ jobs:
           command: ./scripts/ci-job-succeeded.sh
           when: on_success
 
-  publish-packages:
-    description: "Publish packages"
-    parameters:
-      edition:
-        type: string
-    executor: grafana-publish
-    steps:
-      - run:
-          name: Exit if forked PR
-          command: |
-            if [[ -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
-      - attach_workspace:
-          at: /tmp/workspace
-      - checkout
-      - run:
-          name: CI job started
-          command: ./scripts/ci-job-started.sh
-      - install-grabpl
-      - run:
-          name: Publish packages
-          command: |
-            cp -r /tmp/workspace/oss/dist .
-            if [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              /tmp/grabpl publish-packages --edition oss \
-                --deb-db-bucket grafana-testing-aptly-db --deb-repo-bucket grafana-testing-repo --packages-bucket \
-                grafana-downloads-test --rpm-repo-bucket grafana-testing-repo --simulate-release
-            else
-              /tmp/grabpl publish-packages --edition oss
-            fi
-      - run:
-          name: CI job failed
-          command: ./scripts/ci-job-failed.sh
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: ./scripts/ci-job-succeeded.sh
-          when: on_success
-
   build-docker-images:
     description: "Build/publish Docker images"
     parameters:
@@ -417,80 +351,6 @@ jobs:
           command: ./scripts/ci-job-succeeded.sh
           when: on_success
 
-  end-to-end-tests:
-    executor: e2e
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - checkout
-      - restore_cache:
-          keys:
-            - v2-yarn-{{ checksum "yarn.lock" }}
-            # Used if checksum fails
-            - v2-yarn-
-      - run:
-          name: yarn install
-          command: yarn install --frozen-lockfile --no-progress
-          no_output_timeout: 5m
-      - save_cache:
-          key: v2-yarn-{{ checksum "yarn.lock" }}
-          paths:
-            - node_modules
-      - run:
-          name: Copy artifacts from workspace
-          command: |
-            mkdir -p dist
-            cp -r /tmp/workspace/oss/dist/*.tar.gz dist/
-      - run:
-          name: Start grafana-server
-          command: ./e2e/start-server
-          background: true
-      - run:
-          name: "Wait for Grafana to start"
-          command: './e2e/wait-for-grafana'
-      - run:
-          name: Run end-to-end tests
-          command: ./e2e/run-suite
-          no_output_timeout: 5m
-      - store_artifacts:
-          path: e2e/suite1/screenshots
-          destination: screenshots
-      - store_artifacts:
-          path: e2e/suite1/videos
-          destination: output-videos
-      - store_artifacts:
-          path: e2e/tmp/data/log
-          destination: logs
-
-  postgres-integration-test:
-    docker:
-      - image: cimg/go:1.14
-      - image: circleci/postgres:9.3-ram
-        environment:
-          POSTGRES_USER: grafanatest
-          POSTGRES_PASSWORD: grafanatest
-          POSTGRES_DB: grafanatest
-    steps:
-      - checkout
-      - run:
-          name: ci job started
-          command: "./scripts/ci-job-started.sh"
-      - run: sudo apt update
-      - run: sudo apt install -y postgresql-client
-      - run: dockerize -wait tcp://127.0.0.1:5432 -timeout 120s
-      - run: "PGPASSWORD=grafanatest psql -p 5432 -h 127.0.0.1 -U grafanatest -d grafanatest -f devenv/docker/blocks/postgres_tests/setup.sql"
-      - run:
-          name: postgres integration tests
-          command: "./scripts/circle-test-postgres.sh"
-      - run:
-          name: ci job failed
-          command: "./scripts/ci-job-failed.sh"
-          when: on_fail
-      - run:
-          name: ci job succeeded
-          command: "./scripts/ci-job-succeeded.sh"
-          when: on_success
-
   codespell:
     docker:
       - image: cimg/python:3.8
@@ -552,36 +412,6 @@ workflows:
       - build-backend:
           filters: *filter-main-or-release
           edition: oss
-          variant: armv6
-          name: build-oss-backend-armv6
-      - build-backend:
-          filters: *filter-main-or-release
-          edition: oss
-          variant: armv7
-          name: build-oss-backend-armv7
-      - build-backend:
-          filters: *filter-main-or-release
-          edition: oss
-          variant: armv7-musl
-          name: build-oss-backend-armv7-musl
-      - build-backend:
-          filters: *filter-main-or-release
-          edition: oss
-          variant: arm64
-          name: build-oss-backend-arm64
-      - build-backend:
-          filters: *filter-main-or-release
-          edition: oss
-          variant: arm64-musl
-          name: build-oss-backend-arm64-musl
-      - build-backend:
-          filters: *filter-main-or-release
-          edition: oss
-          variant: osx64
-          name: build-oss-backend-osx64
-      - build-backend:
-          filters: *filter-main-or-release
-          edition: oss
           variant: linux-x64
           name: build-oss-backend-linux-x64
       - build-backend:
@@ -601,17 +431,9 @@ workflows:
           filters: *filter-main-or-release
       - shellcheck:
           filters: *filter-main-or-release
-      - postgres-integration-test:
-          filters: *filter-main-or-release
       - package-oss:
           filters: *filter-main-or-release
           requires:
-            - build-oss-backend-armv6
-            - build-oss-backend-armv7
-            - build-oss-backend-armv7-musl
-            - build-oss-backend-arm64
-            - build-oss-backend-arm64-musl
-            - build-oss-backend-osx64
             - build-oss-backend-linux-x64
             - build-oss-backend-linux-x64-musl
             - build-oss-frontend
@@ -622,11 +444,6 @@ workflows:
           filters: *filter-main-or-release
           name: build-oss-docker-images
           edition: oss
-          requires:
-            - postgres-integration-test
-            - package-oss
-      - end-to-end-tests:
-          filters: *filter-main-or-release
           requires:
             - package-oss
 
