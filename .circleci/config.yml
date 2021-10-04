@@ -18,7 +18,6 @@ aliases:
       only:
         - main
         - fix-circleci
-        - chore/test-release-pipeline
     tags:
       only: /^v[0-9]+(\.[0-9]+){2}(-.+|[^-.]*)$/
 
@@ -67,7 +66,7 @@ jobs:
       - run:
           name: Exit if enterprise and forked PR
           command: |
-            if [[ "<< parameters.edition >>" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
+            if [[ "oss" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
               echo "Nothing to do for forked PRs, so marking this step successful"
               circleci step halt
             fi
@@ -81,24 +80,20 @@ jobs:
           command: |
             if [[ -n $CIRCLE_TAG ]]; then
               # A release build
-              /tmp/grabpl build-backend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> \
+              /tmp/grabpl build-backend --github-token --edition oss \
                 --variants << parameters.variant >> $CIRCLE_TAG
-            elif [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              /tmp/grabpl build-backend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> \
-                --variants << parameters.variant >> v7.0.0-test
             else
               # A main or PR build
-              /tmp/grabpl build-backend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> \
+              /tmp/grabpl build-backend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition oss \
                 --variants << parameters.variant >> --build-id $CIRCLE_WORKFLOW_ID
             fi
       - run:
           name: Move artifacts
-          command: mkdir -p << parameters.edition >> && mv bin << parameters.edition >>/
+          command: mkdir -p oss && mv bin oss/
       - persist_to_workspace:
           root: .
           paths:
-            - << parameters.edition >>/bin/*
+            - oss/bin/*
       - run:
           name: CI job failed
           command: ./scripts/ci-job-failed.sh
@@ -119,7 +114,7 @@ jobs:
       - run:
           name: Exit if enterprise and forked PR
           command: |
-            if [[ "<< parameters.edition >>" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
+            if [[ "oss" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
               echo "Nothing to do for forked PRs, so marking this step successful"
               circleci step halt
             fi
@@ -151,21 +146,21 @@ jobs:
           command: |
             if [[ -n $CIRCLE_TAG ]]; then
               # A release build
-              /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> $CIRCLE_TAG
+              /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition oss $CIRCLE_TAG
             elif [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
               # We're testing the release pipeline
-              /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> 7.0.0-test
+              /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition oss 7.0.0-test
             else
               # A main or PR build
-              /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> --build-id $CIRCLE_WORKFLOW_ID
+              /tmp/grabpl build-frontend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition oss --build-id $CIRCLE_WORKFLOW_ID
             fi
       - run:
           name: Move artifacts
-          command: mkdir << parameters.edition >> && cp -r public << parameters.edition >>/
+          command: mkdir oss && cp -r public oss/
       - persist_to_workspace:
           root: .
           paths:
-            - << parameters.edition >>/public/*
+            - oss/public/*
       - run:
           name: CI job failed
           command: ./scripts/ci-job-failed.sh
@@ -185,7 +180,7 @@ jobs:
       - run:
           name: Exit if enterprise and forked PR
           command: |
-            if [[ "<< parameters.edition >>" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
+            if [[ "oss" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
               echo "Nothing to do for forked PRs, so marking this step successful"
               circleci step halt
             fi
@@ -199,47 +194,20 @@ jobs:
           command: |
             if [[ -n "$CIRCLE_PR_NUMBER" ]]; then
               # This is a forked PR, so don't sign as it requires an API secret
-              /tmp/grabpl build-plugins --jobs 2 --edition << parameters.edition >>
+              /tmp/grabpl build-plugins --jobs 2 --edition oss
             else
               export GRAFANA_API_KEY=$GRAFANA_COM_API_KEY
-              /tmp/grabpl build-plugins --jobs 2 --edition << parameters.edition >> --sign --signing-admin
+              /tmp/grabpl build-plugins --jobs 2 --edition oss --sign --signing-admin
             fi
       - run:
           name: Move artifacts
           command: |
-            mkdir -p << parameters.edition >>/plugins-bundled
-            mv plugins-bundled/dist << parameters.edition >>/plugins-bundled/
+            mkdir -p oss/plugins-bundled
+            mv plugins-bundled/dist oss/plugins-bundled/
       - persist_to_workspace:
           root: .
           paths:
-            - << parameters.edition >>/plugins-bundled/dist/*
-      - run:
-          name: CI job failed
-          command: ./scripts/ci-job-failed.sh
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: ./scripts/ci-job-succeeded.sh
-          when: on_success
-
-  build-release-publisher:
-    description: "Build release-publisher"
-    executor: go
-    steps:
-      - checkout
-      - run:
-          name: CI job started
-          command: ./scripts/ci-job-started.sh
-      - run:
-          name: Test and build Grafana.com release publisher
-          command: |
-            cd scripts/build/release_publisher
-            go test .
-            go build -o release_publisher .
-      - persist_to_workspace:
-          root: .
-          paths:
-            - scripts/build/release_publisher/release_publisher
+            - oss/plugins-bundled/dist/*
       - run:
           name: CI job failed
           command: ./scripts/ci-job-failed.sh
@@ -270,38 +238,6 @@ jobs:
           name: ShellCheck
           command: |
             /tmp/grabpl shellcheck
-      - run:
-          name: CI job failed
-          command: ./scripts/ci-job-failed.sh
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: ./scripts/ci-job-succeeded.sh
-          when: on_success
-
-  release-next-packages:
-    executor: grafana-build
-    steps:
-      - run:
-          name: Exit if forked PR
-          command: |
-            if [[ -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
-      - checkout
-      - run:
-          name: CI job started
-          command: ./scripts/ci-job-started.sh
-      - run:
-          name: Bootstrap lerna
-          command: npx lerna bootstrap
-      - run:
-          name: npm - Prepare auth token
-          command: "echo //registry.npmjs.org/:_authToken=$NPM_TOKEN >> ~/.npmrc"
-      - run:
-          name: Release next packages
-          command: ./scripts/circle-release-next-packages.sh
       - run:
           name: CI job failed
           command: ./scripts/ci-job-failed.sh
@@ -394,14 +330,14 @@ jobs:
       - run:
           name: Publish packages
           command: |
-            cp -r /tmp/workspace/<< parameters.edition >>/dist .
+            cp -r /tmp/workspace/oss/dist .
             if [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
               # We're testing the release pipeline
-              /tmp/grabpl publish-packages --edition << parameters.edition >> \
+              /tmp/grabpl publish-packages --edition oss \
                 --deb-db-bucket grafana-testing-aptly-db --deb-repo-bucket grafana-testing-repo --packages-bucket \
                 grafana-downloads-test --rpm-repo-bucket grafana-testing-repo --simulate-release
             else
-              /tmp/grabpl publish-packages --edition << parameters.edition >>
+              /tmp/grabpl publish-packages --edition oss
             fi
       - run:
           name: CI job failed
@@ -424,13 +360,6 @@ jobs:
       # Required for building cross-platform images
       DOCKER_BUILDKIT: 1
     steps:
-      - run:
-          name: Exit if enterprise and forked PR
-          command: |
-            if [[ "<< parameters.edition >>" == "enterprise" && -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
       - attach_workspace:
           at: /tmp/workspace
       - checkout
@@ -455,38 +384,31 @@ jobs:
       - run:
           name: Copy Grafana archives
           command: |
-            cp -r /tmp/workspace/<< parameters.edition >>/dist .
+            cp -r /tmp/workspace/oss/dist .
       - run:
           name: Build Docker images
           command: |
             source google-cloud-sdk/path.bash.inc
             if [[ -n $CIRCLE_TAG || $CIRCLE_BRANCH == "chore/test-release-pipeline" || $CIRCLE_BRANCH == "main" ]]; then
               # It's a full build
-              /tmp/grabpl build-docker --jobs 4 --edition << parameters.edition >> \
-                --ubuntu=<< parameters.ubuntu >>
+              /tmp/grabpl build-docker --jobs 4 --edition oss \
+                --ubuntu=false
             else
               # We're testing a branch
-              /tmp/grabpl build-docker --jobs 4 --edition << parameters.edition >> \
-                --ubuntu=<< parameters.ubuntu >> --archs amd64
-            fi
-      - run:
-          name: Exit if PR
-          command: |
-            if [[ -z $CIRCLE_TAG && $CIRCLE_BRANCH != "chore/test-release-pipeline" && $CIRCLE_BRANCH != "main" ]]; then
-              echo "Nothing to do for PRs, so marking this step successful"
-              circleci step halt
+              /tmp/grabpl build-docker --jobs 4 --edition oss \
+                --ubuntu=false --archs amd64
             fi
       - run:
           name: Publish Docker images
           command: |
             if [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
               # We're testing the release pipeline
-              /tmp/grabpl publish-docker --jobs 4 --edition << parameters.edition >> --ubuntu=<< parameters.ubuntu >> --dry-run
+              /tmp/grabpl publish-docker --jobs 4 --edition oss --ubuntu=false --dry-run
             elif [[ -n $CIRCLE_TAG ]]; then
               # This is a release
-              /tmp/grabpl publish-docker --jobs 4 --edition << parameters.edition >> --ubuntu=<< parameters.ubuntu >>
+              /tmp/grabpl publish-docker --jobs 4 --edition oss --ubuntu=false
             else
-              /tmp/grabpl publish-docker --jobs 4 --edition << parameters.edition >> --ubuntu=<< parameters.ubuntu >>
+              /tmp/grabpl publish-docker --jobs 4 --edition oss --ubuntu=false
             fi
       - run:
           name: CI job failed
@@ -587,161 +509,6 @@ jobs:
           name: check documentation spelling errors
           command: "codespell -I ./words_to_ignore.txt docs/" 
 
-  test-frontend:
-    parameters:
-      edition:
-        type: string
-    executor: node
-    steps:
-      - checkout
-      - run:
-          name: CI job started
-          command: "./scripts/ci-job-started.sh"
-      - restore_cache:
-          keys:
-            - v2-yarn-{{ checksum "yarn.lock" }}
-            # Used if checksum fails
-            - v2-yarn-
-      - run:
-          name: yarn install
-          command: "yarn install --frozen-lockfile --no-progress"
-          no_output_timeout: 15m
-      - save_cache:
-          key: v2-yarn-{{ checksum "yarn.lock" }}
-          paths:
-            - node_modules
-      - install-grabpl
-      - run:
-          name: frontend tests
-          command: |
-            yarn wait-on http://$HOST:$PORT
-            yarn -s test:accessibility --json > pa11y-ci-results.json
-            if [[ -n $CIRCLE_TAG ]]; then
-              # A release build
-              ./scripts/circle-test-frontend.sh --edition << parameters.edition >> $CIRCLE_TAG
-            elif [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              ./scripts/circle-test-frontend.sh --edition << parameters.edition >> v7.0.0-test
-            else
-              # A main build
-              ./scripts/circle-test-frontend.sh --edition << parameters.edition >> --build-id $CIRCLE_WORKFLOW_ID
-            fi
-      - store_test_results:
-          path: reports/junit
-      - run:
-          name: CI job failed
-          command: "./scripts/ci-job-failed.sh"
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: "./scripts/ci-job-succeeded.sh"
-          when: on_success
-
-  test-backend:
-    executor: go
-    parameters:
-      edition:
-        type: string
-    steps:
-      - checkout
-      - run:
-          name: CI job started
-          command: "./scripts/ci-job-started.sh"
-      - install-grabpl
-      - run:
-          name: back-end tests
-          command: |
-            if [[ -n $CIRCLE_TAG ]]; then
-              # A release build
-              /tmp/grabpl test-backend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> \
-                $CIRCLE_TAG
-            elif [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              /tmp/grabpl test-backend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> \
-                v7.0.0-test
-            else
-              # A main build
-              /tmp/grabpl test-backend --github-token "${GITHUB_GRAFANABOT_TOKEN}" --edition << parameters.edition >> \
-                --build-id $CIRCLE_WORKFLOW_ID
-            fi
-      - run:
-          name: CI job failed
-          command: "./scripts/ci-job-failed.sh"
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: "./scripts/ci-job-succeeded.sh"
-          when: on_success
-
-  build-docs-website:
-    executor: base
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: CI job started
-          command: "./scripts/ci-job-started.sh"
-      - run:
-          name: Build Grafana docs website
-          command: |
-            # Use latest revision here, since we want to catch if it breaks
-            IMAGE=grafana/docs-base:latest
-
-            # In order to copy sources into the remote container, we need to employ a trick of creating a container
-            # with a volume, that we copy the sources into. Then, we launch the build container, with the volume
-            # from the other container
-            docker create -v /hugo/content/docs/grafana --name docs alpine:3.11 /bin/true
-            docker cp ${PWD}/docs/sources docs:/hugo/content/docs/grafana/latest
-            docker run --volumes-from docs $IMAGE /bin/bash -c 'make prod'
-      - run:
-          name: CI job failed
-          command: "./scripts/ci-job-failed.sh"
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: "./scripts/ci-job-succeeded.sh"
-          when: on_success
-
-  release-packages:
-    executor: node
-    steps:
-      - run:
-          name: Exit if forked PR
-          command: |
-            if [[ -n "$CIRCLE_PR_NUMBER" ]]; then
-              echo "Nothing to do for forked PRs, so marking this step successful"
-              circleci step halt
-            fi
-      - checkout
-      - run:
-          name: CI job started
-          command: "./scripts/ci-job-started.sh"
-      - run:
-          name: Bootstrap lerna
-          command: "npx lerna bootstrap"
-      - run:
-          name: npm - Prepare auth token
-          command: "echo //registry.npmjs.org/:_authToken=$NPM_TOKEN >> ~/.npmrc"
-      - run:
-          name: Exit if release pipeline test
-          command: |
-            if [[ $CIRCLE_BRANCH == "chore/test-release-pipeline" ]]; then
-              # We're testing the release pipeline
-              echo "We're testing the release pipeline, so stopping before publishing"
-              circleci step halt
-            fi
-      - run:
-          name: Release packages
-          command: ./scripts/build/release-packages.sh "${CIRCLE_TAG}"
-      - run:
-          name: CI job failed
-          command: "./scripts/ci-job-failed.sh"
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: "./scripts/ci-job-succeeded.sh"
-          when: on_success
-
   scan-docker-image:
     description: "Scans a docker image for vulnerabilities using trivy"
     parameters:
@@ -838,19 +605,8 @@ workflows:
           filters: *filter-main-or-release
       - shellcheck:
           filters: *filter-main-or-release
-      - test-backend:
-          filters: *filter-main-or-release
-          name: test-oss-backend
-          edition: oss
-      - test-frontend:
-          filters: *filter-main-or-release
-          name: test-oss-frontend
-          edition: oss
       - postgres-integration-test:
           filters: *filter-main-or-release
-          requires:
-            - test-oss-backend
-            - test-oss-frontend
       - package-oss:
           filters: *filter-main-or-release
           requires:
@@ -863,43 +619,13 @@ workflows:
             - build-oss-backend-linux-x64
             - build-oss-backend-linux-x64-musl
             - build-oss-frontend
-            - test-oss-backend
-            - test-oss-frontend
             - codespell
             - shellcheck
             - build-oss-plugins
-      - release-next-packages:
-          filters: *filter-only-main
-          requires:
-            - end-to-end-tests
-      - release-packages:
-          filters: *filter-only-release
-          requires:
-            - end-to-end-tests
-            - postgres-integration-test
-      - publish-packages:
-          filters: *filter-main-or-release
-          name: publish-oss-packages
-          edition: oss
-          requires:
-            - package-oss
-            - end-to-end-tests
-            - postgres-integration-test
-            - build-release-publisher
       - build-docker-images:
           filters: *filter-main-or-release
           name: build-oss-docker-images
           edition: oss
-          ubuntu: false
-          requires:
-            - end-to-end-tests
-            - postgres-integration-test
-            - package-oss
-      - build-docker-images:
-          filters: *filter-main-or-release
-          name: build-oss-ubuntu-docker-images
-          edition: oss
-          ubuntu: true
           requires:
             - end-to-end-tests
             - postgres-integration-test
@@ -919,5 +645,5 @@ workflows:
           matrix:
             parameters:
               image: [grafana/grafana]
-              tag: [latest, main, latest-ubuntu, main-ubuntu]
+              tag: [latest, main]
 
