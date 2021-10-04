@@ -30,7 +30,7 @@ executors:
       - image: cimg/node:16.10.0
   go:
     docker:
-      - image: cimg/go:1.17
+      - image: cimg/go:1.16.1-alpine3.14
   e2e:
     docker:
       - image: srclosson/grafana-plugin-ci-e2e:latest
