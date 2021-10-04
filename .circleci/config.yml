@@ -201,8 +201,6 @@ workflows:
           filters: *filter-main-or-release
           name: build-oss-docker-images
           edition: oss
-          requires:
-            - package-oss
 
   nightly:
     triggers:
