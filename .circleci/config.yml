@@ -353,8 +353,6 @@ jobs:
     parameters:
       edition:
         type: string
-      ubuntu:
-        type: boolean
     executor: base
     environment:
       # Required for building cross-platform images
