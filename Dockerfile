@@ -17,7 +17,7 @@ COPY emails emails
 ENV NODE_ENV production
 RUN yarn build
 
-FROM golang:1.16-alpine as go-builder
+FROM golang:1.16.0-alpine as go-builder
 
 RUN apk add --no-cache gcc g++
 
