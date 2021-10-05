@@ -104,14 +104,6 @@ jobs:
           command: |
             make gen-go
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
-      - run:
-          name: CI job failed
-          command: ./scripts/ci-job-failed.sh
-          when: on_fail
-      - run:
-          name: CI job succeeded
-          command: ./scripts/ci-job-succeeded.sh
-          when: on_success
 
   codespell:
     docker:
