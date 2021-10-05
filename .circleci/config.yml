@@ -102,6 +102,7 @@ jobs:
       - run:
           name: Build Docker images
           command: |
+            make gen-go
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
       - run:
           name: CI job failed
