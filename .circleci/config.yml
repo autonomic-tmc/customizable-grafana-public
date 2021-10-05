@@ -84,7 +84,7 @@ jobs:
     parameters:
       edition:
         type: string
-    executor: base
+    executor: go
     environment:
       # Required for building cross-platform images
       DOCKER_BUILDKIT: 1
