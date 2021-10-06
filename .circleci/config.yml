@@ -107,8 +107,6 @@ workflows:
     jobs:
       - codespell:
           filters: *filter-main-or-release
-      - shellcheck:
-          filters: *filter-main-or-release
       - build-docker-images:
           filters: *filter-main-or-release
           name: build-oss-docker-images
@@ -125,4 +123,3 @@ workflows:
             parameters:
               image: [grafana/grafana]
               tag: [latest, main]
-
