@@ -1,19 +1,11 @@
 version: 2.1
 
 aliases:
-  - &filter-only-main
-    branches:
-      only: 
-        - main
-        - rc
-        - fix-circleci
   - &filter-main-or-release
     branches:
       only:
         - main
-        - fix-circleci
-    tags:
-      only: /^v[0-9]+(\.[0-9]+){2}(-.+|[^-.]*)$/
+        - rc
 
 executors:
   go:
@@ -62,45 +54,6 @@ jobs:
           name: check documentation spelling errors
           command: "codespell -I ./words_to_ignore.txt docs/" 
 
-  scan-docker-image:
-    description: "Scans a docker image for vulnerabilities using trivy"
-    parameters:
-      image:
-        type: string
-      tag:
-        type: string
-    docker:
-      - image: circleci/buildpack-deps:stretch
-    steps:
-      - setup_remote_docker
-      - restore_cache:
-          key: vulnerability-db
-      - run:
-          name: Install trivy
-          command: |
-            VERSION=$(
-                curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | \
-                grep '"tag_name":' | \
-                sed -E 's/.*"v([^"]+)".*/\1/'
-            )
-
-            wget https://github.com/aquasecurity/trivy/releases/download/v${VERSION}/trivy_${VERSION}_Linux-64bit.tar.gz
-            tar zxvf trivy_${VERSION}_Linux-64bit.tar.gz
-            sudo mv trivy /usr/local/bin
-      - run:
-          name: Clear trivy cache
-          command: trivy --clear-cache
-      - run:
-          name: Scan Docker image for unkown/low/medium vulnerabilities
-          command: trivy --exit-code 0 --severity UNKNOWN,LOW,MEDIUM << parameters.image >>:<< parameters.tag >>
-      - run:
-          name: Scan Docker image for high/critical vulnerabilities
-          command: trivy --exit-code 1 --severity HIGH,CRITICAL << parameters.image >>:<< parameters.tag >>
-      - save_cache:
-          key: vulnerability-db
-          paths:
-            - $HOME/.cache/trivy
-
 workflows:
   build-pipeline:
     jobs:
@@ -110,15 +63,3 @@ workflows:
           filters: *filter-main-or-release
           name: build-oss-docker-images
           edition: oss
-
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters: *filter-only-main
-    jobs:
-      - scan-docker-image:
-          matrix:
-            parameters:
-              image: [grafana/grafana]
-              tag: [latest, main]
