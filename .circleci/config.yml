@@ -40,7 +40,6 @@ jobs:
       - setup_remote_docker:
           # This version is necessary for building cross-platform images
           version: 18.09.3
-      - install-grabpl
       - run:
           name: Build Docker images
           command: |
