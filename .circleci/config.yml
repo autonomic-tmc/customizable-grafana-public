@@ -37,6 +37,10 @@ jobs:
           command: |
             make gen-go
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
+      - sonarcloud/scan
+
+orbs:
+  sonarcloud: sonarsource/sonarcloud@1.0.2
 
   codespell:
     docker:
@@ -55,6 +59,10 @@ jobs:
           command: "codespell -I ./words_to_ignore.txt docs/" 
 
 workflows:
+  main:
+      jobs:
+        - build:
+            context: SonarCloud
   build-pipeline:
     jobs:
       - codespell:
