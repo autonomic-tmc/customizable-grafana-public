@@ -11,6 +11,15 @@ executors:
   go:
     docker:
       - image: cimg/go:1.16.7
+  sonar-image:
+    working_directory: /tmp/workspace
+    environment:
+      LANGUAGE: GOLANG
+      JAVA_TOOL_OPTIONS: -Xmx1024m
+    docker:
+        auth:
+          username: ${CS_PRIVATE_USERNAME}
+          password: ${CS_PRIVATE_API_TOKEN}
                        
 jobs:
   build-docker-images:
@@ -32,15 +41,12 @@ jobs:
       - setup_remote_docker:
           # This version is necessary for building cross-platform images
           version: 18.09.3
+      - sonarcloud-scan
       - run:
           name: Build Docker images
           command: |
             make gen-go
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
-      - sonarcloud/scan
-
-orbs:
-  sonarcloud: sonarsource/sonarcloud@1.0.2
 
   codespell:
     docker:
