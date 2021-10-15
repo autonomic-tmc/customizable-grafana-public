@@ -24,9 +24,6 @@ executors:
 jobs:
   build-docker-images:
     description: "Build/publish Docker images"
-    parameters:
-      edition:
-        type: string
     executor: go
     environment:
       # Required for building cross-platform images
