@@ -73,10 +73,6 @@ jobs:
           command: "codespell -I ./words_to_ignore.txt docs/" 
 
 workflows:
-  main:
-      jobs:
-        - build:
-            context: SonarCloud
   build-pipeline:
     jobs:
       - codespell:
