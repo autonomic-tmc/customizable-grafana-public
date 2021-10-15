@@ -6,6 +6,7 @@ aliases:
       only:
         - main
         - rc
+        - add-sonar-project
 
 executors:
   go:
