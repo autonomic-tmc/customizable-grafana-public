@@ -41,12 +41,20 @@ jobs:
       - setup_remote_docker:
           # This version is necessary for building cross-platform images
           version: 18.09.3
-      - sonarcloud-scan
+      - sonar
       - run:
           name: Build Docker images
           command: |
             make gen-go
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
+  sonar:
+    executor: sonar-image
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: Analyze on SonarCloud
+          command: ../sonar.sh
 
   codespell:
     docker:
