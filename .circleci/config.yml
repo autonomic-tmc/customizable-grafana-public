@@ -31,7 +31,7 @@ jobs:
       DOCKER_BUILDKIT: 1
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: /tmp/project
       - checkout
       - run:
           name: CI job started
@@ -47,10 +47,10 @@ jobs:
   sonar:
     executor: sonar-image
     environment:
-      SONAR_PROJECT_BASE_DIR: /tmp/workspace/grafana
+      SONAR_PROJECT_BASE_DIR: /tmp/project/grafana
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: /tmp/project
       - checkout
       - run:
           name: Analyze on SonarCloud
