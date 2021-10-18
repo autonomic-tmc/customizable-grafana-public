@@ -54,7 +54,10 @@ jobs:
       - checkout
       - run:
           name: Analyze on SonarCloud
-          command: /root/sonar.sh
+          command: |
+          pwd
+          ls
+          /root/sonar.sh
 
   codespell:
     docker:
