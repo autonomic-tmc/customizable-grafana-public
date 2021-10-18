@@ -30,7 +30,8 @@ jobs:
       # Required for building cross-platform images
       DOCKER_BUILDKIT: 1
     steps:
-      - working_directory: /root/repo
+      - attach_workspace:
+          at: /tmp/workspace
       - checkout
       - run:
           name: CI job started
@@ -45,12 +46,15 @@ jobs:
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
   sonar:
     executor: sonar-image
+    environment:
+      SONAR_PROJECT_BASE_DIR: /tmp/workspace/grafana
     steps:
-      - working_directory: /root
+      - attach_workspace:
+          at: /tmp/workspace
       - checkout
       - run:
           name: Analyze on SonarCloud
-          command: ../sonar.sh
+          command: /root/sonar.sh
 
   codespell:
     docker:
