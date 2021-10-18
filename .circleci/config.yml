@@ -47,7 +47,7 @@ jobs:
   sonar:
     executor: sonar-image
     environment:
-      SONAR_PROJECT_BASE_DIR: /tmp/project/grafana
+      SONAR_PROJECT_BASE_DIR: /tmp/project
     steps:
       - attach_workspace:
           at: /tmp/project
@@ -55,7 +55,6 @@ jobs:
       - run:
           name: Analyze on SonarCloud
           command: pwd && ls && /root/sonar.sh
-
   codespell:
     docker:
       - image: cimg/python:3.8
