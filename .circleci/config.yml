@@ -30,8 +30,7 @@ jobs:
       # Required for building cross-platform images
       DOCKER_BUILDKIT: 1
     steps:
-      - attach_workspace:
-          at: /root/repo
+      - working_directory: /root/repo
       - checkout
       - run:
           name: CI job started
@@ -47,8 +46,7 @@ jobs:
   sonar:
     executor: sonar-image
     steps:
-      - attach_workspace:
-          at: /root
+      - working_directory: /root
       - checkout
       - run:
           name: Analyze on SonarCloud
