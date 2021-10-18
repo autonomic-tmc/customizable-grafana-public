@@ -77,5 +77,6 @@ workflows:
           filters: *filter-main-or-release
       - sonar:
           filters: *filter-main-or-release
+          context: tmc-cloudsmith-context
       - build-docker-images:
           filters: *filter-main-or-release
