@@ -31,7 +31,7 @@ jobs:
       DOCKER_BUILDKIT: 1
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: /root/repo
       - checkout
       - run:
           name: CI job started
@@ -48,7 +48,7 @@ jobs:
     executor: sonar-image
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: /root
       - checkout
       - run:
           name: Analyze on SonarCloud
