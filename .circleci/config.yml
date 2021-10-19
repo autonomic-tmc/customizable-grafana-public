@@ -11,20 +11,26 @@ executors:
   go:
     docker:
       - image: cimg/go:1.16.7
-                       
+  sonar-image:
+    environment:
+      LANGUAGE: GOLANG
+      JAVA_TOOL_OPTIONS: -Xmx1024m
+    docker:
+      - image: docker.cloudsmith.io/autonomic/private-images/sonar
+        auth:
+          username: ${CS_PRIVATE_USERNAME}
+          password: ${CS_PRIVATE_API_TOKEN}
+                      
 jobs:
   build-docker-images:
     description: "Build/publish Docker images"
-    parameters:
-      edition:
-        type: string
     executor: go
     environment:
       # Required for building cross-platform images
       DOCKER_BUILDKIT: 1
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: /tmp/project
       - checkout
       - run:
           name: CI job started
@@ -37,7 +43,17 @@ jobs:
           command: |
             make gen-go
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
-
+  sonar:
+    executor: sonar-image
+    environment:
+      SONAR_PROJECT_BASE_DIR: /tmp/project
+    steps:
+      - attach_workspace:
+          at: /tmp/project
+      - checkout
+      - run:
+          name: Analyze on SonarCloud
+          command: pwd && ls && /root/sonar.sh
   codespell:
     docker:
       - image: cimg/python:3.8
@@ -59,7 +75,8 @@ workflows:
     jobs:
       - codespell:
           filters: *filter-main-or-release
+      - sonar:
+          filters: *filter-main-or-release
+          context: tmc-cloudsmith-context
       - build-docker-images:
           filters: *filter-main-or-release
-          name: build-oss-docker-images
-          edition: oss
