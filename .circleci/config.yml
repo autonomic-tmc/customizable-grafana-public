@@ -6,7 +6,6 @@ aliases:
       only:
         - main
         - rc
-        - add-dependency-tracker
 
 executors:
   go:
