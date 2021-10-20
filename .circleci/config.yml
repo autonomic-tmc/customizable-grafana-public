@@ -6,6 +6,7 @@ aliases:
       only:
         - main
         - rc
+        - add-dependency-tracker
 
 executors:
   go:
@@ -45,6 +46,7 @@ jobs:
             make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
   sonar:
     executor: sonar-image
+    description: "SAST with SonarCloud"
     environment:
       SONAR_PROJECT_BASE_DIR: /tmp/project
     steps:
@@ -54,6 +56,20 @@ jobs:
       - run:
           name: Analyze on SonarCloud
           command: pwd && ls && /root/sonar.sh
+  dependency-track:
+    executor: go
+    description: "Analyze dependencies with DependencyTrack"
+    steps:
+      - attach_workspace:
+          at: /tmp/project
+      - checkout
+      - run:
+          name: Create BOM
+          command: cyclonedx-go -o bom.xml
+      - run:
+          name: Send BOM to DependencyTrack
+          command: dtrack-audit -a -n $PROJECT_NAME -k $DTRACK_KEY -u $DTRACK_URL -i bom.xml
+
   codespell:
     docker:
       - image: cimg/python:3.8
