@@ -65,10 +65,14 @@ jobs:
       - checkout
       - run:
           name: Create BOM
-          command: cyclonedx-go -o bom.xml
+          command: |
+          go get github.com/ozonru/cyclonedx-go/cmd/cyclonedx-go
+          cyclonedx-go -o bom.xml
       - run:
           name: Send BOM to DependencyTrack
-          command: dtrack-audit -a -n customizable-grafana -k ${DEP_TRACK_API_TOKEN} -u ${DEP_TRACK_URL} -i bom.xml
+          command: |
+          go get github.com/ozonru/dtrack-audit/cmd/dtrack-audit
+          dtrack-audit -a -n customizable-grafana -k ${DEP_TRACK_API_TOKEN} -u ${DEP_TRACK_URL} -i bom.xml
 
   codespell:
     docker:
