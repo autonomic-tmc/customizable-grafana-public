@@ -55,7 +55,7 @@ jobs:
       - checkout
       - run:
           name: Analyze on SonarCloud
-          command: pwd && ls && /root/sonar.sh
+          command: /root/sonar.sh
   dependency-track:
     executor: go
     description: "Analyze dependencies with DependencyTrack"
