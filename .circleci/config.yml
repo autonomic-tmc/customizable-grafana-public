@@ -68,7 +68,7 @@ jobs:
           command: cyclonedx-go -o bom.xml
       - run:
           name: Send BOM to DependencyTrack
-          command: dtrack-audit -a -n $PROJECT_NAME -k $DTRACK_KEY -u $DTRACK_URL -i bom.xml
+          command: dtrack-audit -a -n customizable-grafana -k ${DEP_TRACK_API_TOKEN} -u ${DEP_TRACK_URL} -i bom.xml
 
   codespell:
     docker:
@@ -96,3 +96,6 @@ workflows:
           context: tmc-cloudsmith-context
       - build-docker-images:
           filters: *filter-main-or-release
+      - dependency-track:
+          filters: *filter-main-or-releaqse
+          context: tmc-oss-context
