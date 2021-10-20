@@ -94,8 +94,15 @@ workflows:
       - sonar:
           filters: *filter-main-or-release
           context: tmc-cloudsmith-context
+          requires:
+            - codespell
+      - dependency-track:
+          filters: *filter-main-or-release
+          context: tmc-oss-context
+          requires:
+            - sonar
       - build-docker-images:
           filters: *filter-main-or-release
-      - dependency-track:
-          filters: *filter-main-or-releaqse
-          context: tmc-oss-context
+          requires:
+            - dependency-track
+
