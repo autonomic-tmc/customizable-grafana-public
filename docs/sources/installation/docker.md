@@ -39,7 +39,7 @@ You can run the latest Grafana version, run a specific version, or run an unstab
 
 ### Run the latest stable version of Grafana
 
-> **Note:** If you are on a Linux system, you might need to add `sudo` before the command.
+> **Note:** If you are on a Linux system, you might need to add `sudo` before the command or add your user to the `docker` group.
 
 ```bash
 docker run -d -p 3000:3000 grafana/grafana
@@ -47,7 +47,7 @@ docker run -d -p 3000:3000 grafana/grafana
 
 ### Run a specific version of Grafana
 
-> **Note:** If you are on a Linux system, you might need to add `sudo` before the command.
+> **Note:** If you are on a Linux system, you might need to add `sudo` before the command add your user to the `docker` group.
 
 ```bash
 docker run -d -p 3000:3000 --name grafana grafana/grafana:<version number>
@@ -141,7 +141,7 @@ Replace `Dockerfile` in above example with `ubuntu.Dockerfile` to build a custom
 
 > Only available in Grafana v6.5 and later. This is experimental.
 
-The [Grafana Image Renderer plugin]({{< relref "../administration/image_rendering/#grafana-image-renderer-plugin" >}}) does not currently work if it is installed in a Grafana Docker image. You can build a custom Docker image by using the `GF_INSTALL_IMAGE_RENDERER_PLUGIN` build argument. This installs additional dependencies needed for the Grafana Image Renderer plugin to run.
+The [Grafana Image Renderer plugin]({{< relref "../image-rendering/#grafana-image-renderer-plugin" >}}) does not currently work if it is installed in a Grafana Docker image. You can build a custom Docker image by using the `GF_INSTALL_IMAGE_RENDERER_PLUGIN` build argument. This installs additional dependencies needed for the Grafana Image Renderer plugin to run.
 
 Example of how to build and run:
 

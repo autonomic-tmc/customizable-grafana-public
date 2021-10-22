@@ -18,6 +18,16 @@ const (
 	darkName  = "dark"
 )
 
+// dataSourcesConfigurationAccessEvaluator is used to protect the "Configure > Data sources" tab access
+var dataSourcesConfigurationAccessEvaluator = ac.EvalAll(
+	ac.EvalPermission(ActionDatasourcesRead, ScopeDatasourcesAll),
+	ac.EvalAny(
+		ac.EvalPermission(ActionDatasourcesCreate),
+		ac.EvalPermission(ActionDatasourcesDelete),
+		ac.EvalPermission(ActionDatasourcesWrite),
+	),
+)
+
 func (hs *HTTPServer) getProfileNode(c *models.ReqContext) *dtos.NavLink {
 	// Only set login if it's different from the name
 	var login string
@@ -35,7 +45,7 @@ func (hs *HTTPServer) getProfileNode(c *models.ReqContext) *dtos.NavLink {
 	if setting.AddChangePasswordLink() {
 		children = append(children, &dtos.NavLink{
 			Text: "Change password", Id: "change-password", Url: hs.Cfg.AppSubURL + "/profile/password",
-			Icon: "lock", HideFromMenu: true,
+			Icon: "lock",
 		})
 	}
 
@@ -205,16 +215,19 @@ func (hs *HTTPServer) getNavTree(c *models.ReqContext, hasEditPerm bool) ([]*dto
 		navTree = append(navTree, hs.getProfileNode(c))
 	}
 
-	if setting.AlertingEnabled {
+	_, uaIsDisabledForOrg := hs.Cfg.UnifiedAlerting.DisabledOrgs[c.OrgId]
+	uaVisibleForOrg := hs.Cfg.UnifiedAlerting.Enabled && !uaIsDisabledForOrg
+
+	if setting.AlertingEnabled || uaVisibleForOrg {
 		alertChildNavs := []*dtos.NavLink{
 			{Text: "Alert rules", Id: "alert-list", Url: hs.Cfg.AppSubURL + "/alerting/list", Icon: "list-ul"},
 		}
-		if hs.Cfg.IsNgAlertEnabled() {
+		if uaVisibleForOrg {
 			alertChildNavs = append(alertChildNavs, &dtos.NavLink{Text: "Alert groups", Id: "groups", Url: hs.Cfg.AppSubURL + "/alerting/groups", Icon: "layer-group"})
 			alertChildNavs = append(alertChildNavs, &dtos.NavLink{Text: "Silences", Id: "silences", Url: hs.Cfg.AppSubURL + "/alerting/silences", Icon: "bell-slash"})
 		}
 		if c.OrgRole == models.ROLE_ADMIN || c.OrgRole == models.ROLE_EDITOR {
-			if hs.Cfg.IsNgAlertEnabled() {
+			if uaVisibleForOrg {
 				alertChildNavs = append(alertChildNavs, &dtos.NavLink{
 					Text: "Contact points", Id: "receivers", Url: hs.Cfg.AppSubURL + "/alerting/notifications",
 					Icon: "comment-alt-share",
@@ -227,7 +240,7 @@ func (hs *HTTPServer) getNavTree(c *models.ReqContext, hasEditPerm bool) ([]*dto
 				})
 			}
 		}
-		if c.OrgRole == models.ROLE_ADMIN && hs.Cfg.IsNgAlertEnabled() {
+		if c.OrgRole == models.ROLE_ADMIN && uaVisibleForOrg {
 			alertChildNavs = append(alertChildNavs, &dtos.NavLink{
 				Text: "Admin", Id: "alerting-admin", Url: hs.Cfg.AppSubURL + "/alerting/admin",
 				Icon: "cog",
@@ -253,7 +266,7 @@ func (hs *HTTPServer) getNavTree(c *models.ReqContext, hasEditPerm bool) ([]*dto
 
 	configNodes := []*dtos.NavLink{}
 
-	if c.OrgRole == models.ROLE_ADMIN {
+	if hasAccess(ac.ReqOrgAdmin, dataSourcesConfigurationAccessEvaluator) {
 		configNodes = append(configNodes, &dtos.NavLink{
 			Text:        "Data sources",
 			Icon:        "database",
