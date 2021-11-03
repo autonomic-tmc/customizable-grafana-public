@@ -27,6 +27,7 @@ type IndexViewData struct {
 	Sentry                  *setting.Sentry
 	ContentDeliveryURL      string
 	LoadingLogo             template.URL
+	ExtraIndexCode          template.HTML
 	// Nonce is a cryptographic identifier for use with Content Security Policy.
 	Nonce string
 }

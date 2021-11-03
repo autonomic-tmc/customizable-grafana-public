@@ -357,6 +357,16 @@ type Cfg struct {
 	// Sentry config
 	Sentry Sentry
 
+	// Branding settings
+	AppName             string
+	LoginSubtitleDomain string
+	LoginSubtitleText   string
+	LoginLogoSrc        string
+	LoginLogoAlt        string
+	FavIconSrc          string
+	LoadingLogo         string
+	ExtraIndexCode      string
+
 	// Data sources
 	DataSourceLimit int
 
@@ -886,6 +896,9 @@ func (cfg *Cfg) Load(args CommandLineArgs) error {
 	if err := cfg.readRenderingSettings(iniFile); err != nil {
 		return err
 	}
+	if err := readBrandingSettings(iniFile, cfg); err != nil {
+		return err
+	}
 
 	cfg.TempDataLifetime = iniFile.Section("paths").Key("temp_data_lifetime").MustDuration(time.Second * 3600 * 24)
 	cfg.MetricsEndpointEnabled = iniFile.Section("metrics").Key("enabled").MustBool(true)
@@ -1339,6 +1352,19 @@ func readUserSettings(iniFile *ini.File, cfg *Cfg) error {
 		}
 	}
 
+	return nil
+}
+
+func readBrandingSettings(iniFile *ini.File, cfg *Cfg) error {
+	branding := iniFile.Section("branding")
+	cfg.AppName = valueAsString(branding, "app_name", "")
+	cfg.LoginSubtitleDomain = valueAsString(branding, "login_subtitle_domain", "")
+	cfg.LoginSubtitleText = valueAsString(branding, "login_subtitle_text", "")
+	cfg.LoginLogoSrc = valueAsString(branding, "login_logo_src", "")
+	cfg.LoginLogoAlt = valueAsString(branding, "login_logo_alt", "")
+	cfg.FavIconSrc = valueAsString(branding, "fav_icon_src", "")
+	cfg.LoadingLogo = valueAsString(branding, "loading_logo", "")
+	cfg.ExtraIndexCode = valueAsString(branding, "extra_index_code", "")
 	return nil
 }
 

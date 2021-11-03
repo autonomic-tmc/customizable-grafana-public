@@ -250,6 +250,13 @@ func (hs *HTTPServer) getFrontendSettingsMap(c *models.ReqContext) (map[string]i
 			"licenseUrl":      hs.License.LicenseURL(c.SignedInUser),
 			"edition":         hs.License.Edition(),
 		},
+		"branding": map[string]interface{}{
+			"appName":             hs.Cfg.AppName,
+			"loginSubtitleDomain": hs.Cfg.LoginSubtitleDomain,
+			"loginSubtitleText":   hs.Cfg.LoginSubtitleText,
+			"loginLogoSrc":        hs.Cfg.LoginLogoSrc,
+			"loginLogoAlt":        hs.Cfg.LoginLogoAlt,
+		},
 		"featureToggles":                   hs.Cfg.FeatureToggles,
 		"rendererAvailable":                hs.RenderService.IsAvailable(),
 		"rendererVersion":                  hs.RenderService.Version(),

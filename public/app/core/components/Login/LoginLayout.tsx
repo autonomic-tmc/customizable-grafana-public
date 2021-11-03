@@ -10,7 +10,11 @@ interface InnerBoxProps {
 }
 export const InnerBox: FC<InnerBoxProps> = ({ children, enterAnimation = true }) => {
   const loginStyles = useStyles2(getLoginStyles);
-  return <div className={cx(loginStyles.loginInnerBox, enterAnimation && loginStyles.enterAnimation)}>{children}</div>;
+  return (
+    <div className={cx(loginStyles.loginInnerBox, enterAnimation && loginStyles.enterAnimation)} id="login-view">
+      {children}
+    </div>
+  );
 };
 
 export const LoginLayout: FC = ({ children }) => {

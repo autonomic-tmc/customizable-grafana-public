@@ -29,7 +29,7 @@ func (*OSSLicensingService) Edition() string {
 }
 
 func (*OSSLicensingService) StateInfo() string {
-	return ""
+	return "AGPL"
 }
 
 func (*OSSLicensingService) ContentDeliveryPrefix() string {
@@ -41,7 +41,7 @@ func (l *OSSLicensingService) LicenseURL(user *models.SignedInUser) string {
 		return l.Cfg.AppSubURL + "/admin/upgrading"
 	}
 
-	return "https://grafana.com/oss/grafana?utm_source=grafana_footer"
+	return "https://github.com/autonomic-tmc/customizable-grafana"
 }
 
 func (*OSSLicensingService) HasValidLicense() bool {

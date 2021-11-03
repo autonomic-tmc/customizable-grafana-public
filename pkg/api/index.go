@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"html/template"
 	"sort"
 	"strings"
 
@@ -479,14 +480,15 @@ func (hs *HTTPServer) setIndexViewData(c *models.ReqContext) (*dtos.IndexViewDat
 		NewGrafanaVersionExists: hs.PluginManager.GrafanaHasUpdate(),
 		AppName:                 setting.ApplicationName,
 		AppNameBodyClass:        getAppNameBodyClass(hs.License.HasValidLicense()),
-		FavIcon:                 "public/img/fav32.png",
+		FavIcon:                 template.URL(hs.Cfg.FavIconSrc),
 		AppleTouchIcon:          "public/img/apple-touch-icon.png",
-		AppTitle:                "Grafana",
+		AppTitle:                hs.Cfg.AppName,
 		NavTree:                 navTree,
 		Sentry:                  &hs.Cfg.Sentry,
 		Nonce:                   c.RequestNonce,
 		ContentDeliveryURL:      hs.Cfg.GetContentDeliveryURL(hs.License.ContentDeliveryPrefix()),
-		LoadingLogo:             "public/img/grafana_icon.svg",
+		LoadingLogo:             template.URL(hs.Cfg.LoadingLogo),
+		ExtraIndexCode:          template.HTML(hs.Cfg.ExtraIndexCode),
 	}
 
 	if hs.Cfg.FeatureToggles["accesscontrol"] {

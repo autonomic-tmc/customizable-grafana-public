@@ -1,4 +1,5 @@
 import React, { FC } from 'react';
+import config from 'app/core/config';
 import { css, cx } from '@emotion/css';
 import { useTheme2, styleMixins } from '@grafana/ui';
 import { colorManipulator } from '@grafana/data';
@@ -9,7 +10,7 @@ export interface BrandComponentProps {
 }
 
 const LoginLogo: FC<BrandComponentProps> = ({ className }) => {
-  return <img className={className} src="public/img/grafana_icon.svg" alt="Grafana" />;
+  return <img className={className} src={config.branding.loginLogoSrc} alt={config.branding.loginLogoAlt} />;
 };
 
 const LoginBackground: FC<BrandComponentProps> = ({ className, children }) => {
@@ -58,9 +59,11 @@ export class Branding {
   static LoginBackground = LoginBackground;
   static MenuLogo = MenuLogo;
   static LoginBoxBackground = LoginBoxBackground;
-  static AppTitle = 'Grafana';
-  static LoginTitle = 'Welcome to Grafana';
-  static GetLoginSubTitle = (): null | string => {
-    return null;
+  static AppTitle = config.branding.appName;
+  static LoginTitle = 'Welcome to ' + config.branding.appName;
+  static GetLoginSubTitle = () => {
+    return window.location.hostname.search(config.branding.loginSubtitleDomain) > -1
+      ? config.branding.loginSubtitleText
+      : '';
   };
 }

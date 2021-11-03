@@ -28,10 +28,11 @@ const loginServices: () => LoginServices = () => {
       icon: 'key-skeleton-alt',
     },
     google: {
-      bgColor: '#e84d3c',
+      bgColor: '#262628',
       enabled: oauthEnabled && config.oauth.google,
-      name: 'Google',
-      icon: 'google',
+      name: config?.oauth?.google?.name ?? 'Google',
+      icon: 'signin',
+      className: 'btn btn-medium btn-service btn-service--oauth css-1gr9vb7',
     },
     azuread: {
       bgColor: '#2f2f2f',
@@ -158,7 +159,7 @@ export const LoginServiceButtons = () => {
             fullWidth
           >
             <Icon className={styles.buttonIcon} name={service.icon} />
-            Sign in with {service.name}
+            {service.name} Login
           </LinkButton>
         ))}
       </VerticalGroup>
