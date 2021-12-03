@@ -1,0 +1,111 @@
+version: 2.1
+
+aliases:
+  - &filter-main-or-release
+    branches:
+      only:
+        - main
+        - rc
+
+executors:
+  go:
+    docker:
+      - image: cimg/go:1.16.7
+  sonar-image:
+    environment:
+      LANGUAGE: GOLANG
+      JAVA_TOOL_OPTIONS: -Xmx1024m
+    docker:
+      - image: docker.cloudsmith.io/autonomic/private-images/sonar
+        auth:
+          username: ${CS_PRIVATE_USERNAME}
+          password: ${CS_PRIVATE_API_TOKEN}
+                      
+jobs:
+  build-docker-images:
+    description: "Build/publish Docker images"
+    executor: go
+    environment:
+      # Required for building cross-platform images
+      DOCKER_BUILDKIT: 1
+    steps:
+      - attach_workspace:
+          at: /tmp/project
+      - checkout
+      - run:
+          name: CI job started
+          command: ./scripts/ci-job-started.sh
+      - setup_remote_docker:
+          # This version is necessary for building cross-platform images
+          version: 18.09.3
+      - run:
+          name: Build Docker images
+          command: |
+            make gen-go
+            make build-docker-full TAG=autonomic-tmc/customizable-grafana:dev
+  sonar:
+    executor: sonar-image
+    description: "SAST with SonarCloud"
+    environment:
+      SONAR_PROJECT_BASE_DIR: /tmp/project
+    steps:
+      - attach_workspace:
+          at: /tmp/project
+      - checkout
+      - run:
+          name: Analyze on SonarCloud
+          command: /root/sonar.sh
+  dependency-track:
+    executor: go
+    description: "Analyze dependencies with DependencyTrack"
+    steps:
+      - attach_workspace:
+          at: /tmp/project
+      - checkout
+      - run:
+          name: Create BOM
+          command: |
+            go get github.com/ozonru/cyclonedx-go/cmd/cyclonedx-go &&
+            cyclonedx-go -o bom.xml
+      - run:
+          name: Send BOM to DependencyTrack
+          command: |
+            go get github.com/ozonru/dtrack-audit/cmd/dtrack-audit &&
+            dtrack-audit -a -n customizable-grafana -k ${DEP_TRACK_API_TOKEN} -u ${DEP_TRACK_URL} -i bom.xml
+
+  codespell:
+    docker:
+      - image: cimg/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: Install codespell
+          command: "pip install codespell"
+      - run:
+          # Important: all words have to be in lowercase, and separated by "\n".
+          name: exclude known exceptions
+          command: 'echo -e "unknwon\nreferer\nerrorstring\neror\niam\nwan\ntrough" > words_to_ignore.txt'
+      - run:
+          name: check documentation spelling errors
+          command: "codespell -I ./words_to_ignore.txt docs/" 
+
+workflows:
+  build-pipeline:
+    jobs:
+      - codespell:
+          filters: *filter-main-or-release
+      - sonar:
+          filters: *filter-main-or-release
+          context: tmc-cloudsmith-context
+          requires:
+            - codespell
+      - dependency-track:
+          filters: *filter-main-or-release
+          context: tmc-oss-context
+          requires:
+            - sonar
+      - build-docker-images:
+          filters: *filter-main-or-release
+          requires:
+            - dependency-track
+

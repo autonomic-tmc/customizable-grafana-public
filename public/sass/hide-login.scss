@@ -1,0 +1,8 @@
+div#login-view > div:first-child {
+    display: none;
+    visibility: hidden; 
+}
+div#login-view > div:nth-child(2) > div:first-child{
+    display: none;
+    visibility: hidden;
+}
